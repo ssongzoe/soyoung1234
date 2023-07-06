@@ -20,7 +20,7 @@ class data_value_evaluator(nn.Module):
             num_items = 40981
         elif args.dataset == "yelp2018":
             num_items = 38048
-        self.fc4 = nn.Sequential(nn.Linear(50 + 1682, 256), nn.ReLU(), nn.Linear(256, 1))
+        self.fc4 = nn.Sequential(nn.Linear(50 + num_items, 256), nn.ReLU(), nn.Linear(256, 1))
         #1682, 40981, 38048 = 아이템숫자랑 같음
     def forward(self, user_emb, pos_emb, y_hat_input):
         z = torch.cat([user_emb, pos_emb], dim=1)
