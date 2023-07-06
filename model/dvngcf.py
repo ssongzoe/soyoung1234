@@ -7,12 +7,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class data_value_evaluator(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(data_value_evaluator, self).__init__()
         self.fc1 = nn.Sequential(nn.Linear(64 + 64, 100), nn.ReLU())
         self.fc2 = nn.Sequential(nn.Linear(100, 100), nn.ReLU())
         self.fc3 = nn.Sequential(nn.Linear(100, 50), nn.ReLU())
         # self.fc4 = nn.Sequential(nn.Linear(50 + 1682, 30), nn.ReLU(), nn.Linear(30, 1))
+        num_items = 0
+        if args.dataset == "ml-100k":
+            num_items = 1682
+        elif args.dataset == "gowalla":
+            num_items = 40981
+        elif args.dataset == "yelp2018":
+            num_items = 38048
         self.fc4 = nn.Sequential(nn.Linear(50 + 1682, 256), nn.ReLU(), nn.Linear(256, 1))
         #1682, 40981, 38048 = 아이템숫자랑 같음
     def forward(self, user_emb, pos_emb, y_hat_input):
