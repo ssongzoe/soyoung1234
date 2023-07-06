@@ -31,7 +31,7 @@ class GDVE_ngcf_Trainer(ModelTrainer):
         self.validTrainer = TLDRtrainer(self.val_model, args)
         self.final_Trainer = TLDRtrainer(self.model, args)
 
-        self.dve_model = data_value_evaluator()
+        self.dve_model = data_value_evaluator(args)
         self.valid_performance = 0.0
         self.check_first_round = True
 
