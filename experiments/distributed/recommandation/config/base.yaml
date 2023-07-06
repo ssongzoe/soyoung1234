@@ -1,5 +1,5 @@
-config_token: azasdf
-test_type: noSL
+config_token: asdfasdf
+test_type: AAA
 #shell script config
 dataset: ml-100k
 data_path: ./../../../data
@@ -7,7 +7,7 @@ gpu_server_num: 1
 gpu_num_per_server: 3
 model: ngcf
 partition_method: homo
-client_num_in_total: 3
+client_num_in_total: 10
 client_num_per_round: 1
 comm_round: 31
 epochs: 10
