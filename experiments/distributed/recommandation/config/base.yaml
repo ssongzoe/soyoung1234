@@ -31,7 +31,7 @@ log_file: base.log
 #metric config
 top_k: 100
 #cuda
-worker: -1
+worker: -1 #If -1, program finds the most free gpu and uses it. If you want to use particular gpu, specify your walker as int e.g. 0,1,2
 #--------------------model config-----------------------
 #GDVE config
 dve_lr: 0.0007
@@ -39,10 +39,11 @@ epsilon: 0.00000001
 baseline_delta: 0.001
 dve_epochs: 1
 patience: 10
-#NGCF config
+#loss contribution
 bpr_reg: 0.01 #bpr loss regulation
 ssl_reg: 0.000001 #structure loss regulation
 proto_reg: 0.0000008 #clustering loss regulation
+#NGCF config
 n_layers: 3
 ssl_temp: 0.1
 alpha: 1
