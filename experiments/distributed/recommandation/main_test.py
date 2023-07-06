@@ -258,6 +258,6 @@ if __name__ == "__main__":
         post_complete_message_to_sweep_process(args)
     # send telegram message after end
     import sys
-    sys.path.append("/home/netisen2/")
+    sys.path.append(os.path.expanduser("~"))
     from toolbox.SNS.sender import send_telegram
     send_telegram(f"End {args.config}")
