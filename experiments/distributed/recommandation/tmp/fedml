@@ -2975,10 +2975,8 @@ Namespace(Ks='[20, 40, 60, 80, 100]', backend='MPI', batch_size=1024, big_data={
         293,  357,  590,   49,  107,  324,  927, 1198,  312,  272,  824,
         105,  271]), 929: array([ 762,   44,    0,  112,  237,  410,  239,  281,  106,  274,  115,
         282,   13,   15,  285, 1009,  844, 1047,  404,  256,   49,  287,
-         23,  244,  755]), 919: array([ 309,  327, 1611,  291,  299,  339,  269,  349,  271,  345]), 940: array([256, 293, 257, 297, 762, 992, 272, 123, 221])}, client_num_in_total=10, client_num_per_round=5, comm_round=35, data_path='./../../../data/ml-100k/', dataset='ml-100k', device=device(type='cuda', index=0), embed_size=64, epochs=15, frequency_of_the_test=1, gpu_num_per_server=4, gpu_server_num=1, is_mobile=0, layer_size='[64,64,64]', lr=0.0038, mess_dropout='[0.1,0.1,0.1]', model='ngcf', n_big=39807, n_train=79981, node_dropout='[0.1]', node_dropout_flag=1, partition_method='homo', round_idx=34, save_flag=0, test_flag='part')
-249, 25798, 23370, 25785,
-       16978,  4943, 25789, 18101, 11044, 11990, 25786, 13069,  5338,
-       23045, 10494, 11994, 23262, 18447, 19042, 17030, 11052, 19707,
+         23,  244,  755]), 919: array([ 309,  327, 1611,  291,  299,  339,  269,  349,  271,  345]), 940: array([256, 293, 257, 297, 762, 992, 272, 123, 221])}, client_num_in_total=10, client_num_per_round=1, comm_round=20, config='config/base.yaml', config_token='aaaaaa', data_path='./../../../data/ml-100k', dataset='ml-100k', device=device(type='cuda', index=2), embed_size=64, epochs=10, frequency_of_the_test=1, gpu_num_per_server=4, gpu_server_num=1, is_mobile=0, layer_size='[64,64,64]', log_dir_path='log', log_file='base.log', lr=0.004, mess_dropout='[0.1,0.1,0.1]', model='ngcf', n_big=39807, n_train=79981, node_dropout='[0.1]', node_dropout_flag=1, partition_method='homo', round_idx=19, save_flag=0, test_flag='part', test_type='noSL')
+5, 10494, 11994, 23262, 18447, 19042, 17030, 11052, 19707,
        18072, 19675, 25779, 25782, 18450,  5246,  5346,  3808, 18097,
        23782, 17193, 25776,  3546,   516, 22014, 17033,  3549,  4940,
        25783,  1168, 10082,  3553]), 1412: array([ 1873,  3840,  6841,   744, 19442,  4905,  6991,  1039,  3895,

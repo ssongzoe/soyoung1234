@@ -18,10 +18,10 @@ class GDVE_ngcf_Trainer(ModelTrainer):
         self.model = model
         self.pred_model = copy.deepcopy(model)
 
-        self.dve_lr = 0.0007 #0.0007 # 0.001 0.0001
-        self.epsilon = 1e-8
+        self.dve_lr = args.dve_lr #0.0007 # 0.001 0.0001
+        self.epsilon = args.epsilon
         # self.best_dve = 0.0
-        self.baseline_delta = 0.001
+        self.baseline_delta = args.baseline_delta
         # self.exploration_threshold = 0.9
         # self.T = 20
         # self.id = 0
@@ -125,7 +125,7 @@ class GDVE_ngcf_Trainer(ModelTrainer):
         # _ , n_all, all_data = self.creat_all_data(client_data, global_data)
         client_data, test_data, n_client, n_test = self.split_valid_data(client_data)
 
-        final_best, patience_ = 0, 10
+        final_best, patience_ = 0, self.args.patience
         best_final_model = self.model
         sel_data = []
 
@@ -541,8 +541,11 @@ class TLDRtrainer():
         for epoch in range(inner_epochs):
 
             loss = loss_func(users, pos_items, neg_items, g_user_centroids, g_item_centroids)
-            st_loss = model.structure_loss(user, pos_item)
-            losses = loss + st_loss
+            if self.args.use_SL:
+                st_loss = model.structure_loss(user, pos_item)
+                losses = loss + st_loss
+            else:
+                losses = loss
 
             optimizer.zero_grad()
             losses.backward()

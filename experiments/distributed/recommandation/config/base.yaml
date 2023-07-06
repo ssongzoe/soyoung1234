@@ -1,0 +1,59 @@
+config_token: azasdf
+test_type: noSL
+#shell script config
+dataset: ml-100k
+data_path: ./../../../data
+gpu_server_num: 1
+gpu_num_per_server: 3
+model: ngcf
+partition_method: homo
+client_num_in_total: 3
+client_num_per_round: 1
+comm_round: 31
+epochs: 10
+batch_size: 1024
+lr: 0.004
+# default config
+backend: MPI
+is_mobile: 0
+frequency_of_the_test: 1
+embed_size: 64
+layer_size: "[64,64,64]"
+node_dropout_flag: 1
+node_dropout: "[0.1]"
+mess_dropout: "[0.1,0.1,0.1]"
+Ks: "[20,40,60,80,100]"
+save_flag: 0
+test_flag: part
+#log config
+log_dir_path: log
+log_file: base.log
+#metric config
+top_k: 100
+#--------------------model config-----------------------
+#GDVE config
+dve_lr: 0.0007
+epsilon: 0.00000001
+baseline_delta: 0.001
+dve_epochs: 1
+patience: 10
+#NGCF config
+bpr_reg: 0.01 #bpr loss regulation
+ssl_reg: 0.000001 #structure loss regulation
+proto_reg: 0.0000008 #clustering loss regulation
+n_layers: 3
+ssl_temp: 0.1
+alpha: 1
+hyper_layers: 1
+cluster_k: 12
+decay: 0.00001
+# GDVE+/- on/off in SL -> terrible length config
+sl_new_user_score_ratio: 0.1
+sl_new_item_score_ratio: 0.1
+sl_use_user_gdve_plus: true
+sl_use_user_gdve_minus: true # not implemented
+sl_use_item_gdve_plus: true
+sl_use_item_gdve_minus: true # not implemented
+# loss config
+use_CL: true
+use_SL: true

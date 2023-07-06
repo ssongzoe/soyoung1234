@@ -7,6 +7,7 @@ import psutil
 import setproctitle
 import torch.nn
 import random
+import yaml
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(),"")))
@@ -96,6 +97,8 @@ def adding_args(parser):
 
     parser.add_argument('--gpu_server_num', type=int, default=1,
                         help='gpu_server_num')
+    
+    parser.add_argument("--config", type=str, default="config/base.yaml")
 
     args = parser.parse_args()
     return args
@@ -145,19 +148,32 @@ def create_model(args, model_name, user_num, item_num, adj_mat):
 
 def init_training_device(process_ID, fl_worker_num, gpu_num_per_machine):
 
-    if process_ID == 0:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #얘가 좀 문제
-        return device
+    # if process_ID == 0:
+    #     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #얘가 좀 문제
+    #     return device
 
-    process_gpu_dict = dict()
-    for worker_index in range(fl_worker_num):
-        gpu_index = worker_index % gpu_num_per_machine
-        process_gpu_dict[worker_index] = gpu_index
+    # process_gpu_dict = dict()
+    # for worker_index in range(fl_worker_num):
+    #     gpu_index = worker_index % gpu_num_per_machine
+    #     process_gpu_dict[worker_index] = gpu_index
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #str(process_gpu_dict[process_ID - 1]) if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #str(process_gpu_dict[process_ID - 1]) if torch.cuda.is_available() else "cpu")
+    import nvidia_smi
+    nvidia_smi.nvmlInit()
+    deviceCount = nvidia_smi.nvmlDeviceGetCount()
+    mem_usage = []
+    for i in range(deviceCount):
+        handle = nvidia_smi.nvmlDeviceGetHandleByIndex(i)
+        info = nvidia_smi.nvmlDeviceGetMemoryInfo(handle)
+        logging.info("Device {}: {}, Memory : ({:.2f}% free): {}(total), {} (free), {} (used)".format(i, nvidia_smi.nvmlDeviceGetName(handle), 100*info.free/info.total, info.total, info.free, info.used))
+        mem_usage.append(info.free/info.total)
+    nvidia_smi.nvmlShutdown()
+
+    worker = np.argmax(mem_usage)
+    device = torch.device(f"cuda:{worker}" if torch.cuda.is_available() else "cpu")
+    logging.info(f"worker {device} is selected")
 
     return device
-
 
 def post_complete_message_to_sweep_process(args):
     logging.info("post_complete_message_to_sweep_process")
@@ -177,6 +193,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run dvngcf")
     args = adding_args(parser)
 
+    with open(args.config) as fd:
+        args_dict = yaml.load(fd, Loader=yaml.FullLoader)
+        args_yaml = argparse.Namespace(**args_dict)
+        args_yaml.data_path = f"{args_yaml.data_path}/{args_yaml.dataset}"
+
+    args.__dict__.update(vars(args_yaml))
     # customize the process name
     str_process_name = "fedgdve" + "+ triple loss" #str(process_id)
     setproctitle.setproctitle(str_process_name)
@@ -184,7 +206,8 @@ if __name__ == "__main__":
     # customize the log format
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d - {%(module)s.py (%(lineno)d)} - %(funcName)s(): %(message)s',
-                        datefmt='%Y-%m-%d,%H:%M:%S')
+                        datefmt='%Y-%m-%d,%H:%M:%S',
+                        filename=f"{args.log_dir_path}/{args.test_type}_{args.dataset}_{args.config_token}.log")
     logging.info(args)
 
     hostname = socket.gethostname()
@@ -222,6 +245,7 @@ if __name__ == "__main__":
     # trainer.test_on_the_server(train_data_local_dict, test_data_local_dict, device, args) #잘돌아감
     # exit(0)
 
+    #blackbox
     FedML_FedAvg_distributed(process_id, worker_number, device, comm,
                              model, train_data_num, train_data_global, test_data_global,
                              data_local_num_dict, train_data_local_dict, test_data_local_dict, args, trainer)

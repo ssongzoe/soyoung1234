@@ -31,31 +31,31 @@ class NGCF(nn.Module):
         self.n_users = n_user
         self.n_items = n_item
         self.device = args.device
-        self.bpr_reg = 1e-2
+        self.bpr_reg = args.bpr_reg
 
-        self.emb_size = 64 # args.embed_size #64
-        self.n_layers = 3
+        self.emb_size = args.embed_size # args.embed_size #64
+        self.n_layers = args.n_layers
         self.batch_size = args.batch_size
         self.node_dropout = eval(args.node_dropout)[0]
         self.mess_dropout = eval(args.mess_dropout)
 
         # hyper-parameter for loss
-        self.ssl_temp = 0.1
-        self.ssl_reg = 1e-6 #1e-7
-        self.alpha = 1
-        self.hyper_layers = 1
+        self.ssl_temp = args.ssl_temp
+        self.ssl_reg = args.ssl_reg #1e-7
+        self.alpha = args.alpha
+        self.hyper_layers = args.hyper_layers
 
-        self.proto_reg = 8e-7 #8e-8
+        self.proto_reg = args.proto_reg #8e-8
         # self.user_centroids = None
         # self.user_2cluster = None
         # self.item_centroids = None
         # self.item_2cluster = None
 
-        self.cluster_k = 12
+        self.cluster_k = args.cluster_k
 
         self.norm_adj = norm_adj
         self.layers = eval(args.layer_size)
-        self.decay = 1e-5
+        self.decay = args.decay
         self.embedding_dict, self.weight_dict = self.init_weight()
         self.sparse_norm_adj = self._convert_sp_mat_to_sp_tensor(self.norm_adj).to(self.device)
 
@@ -237,7 +237,12 @@ class NGCF(nn.Module):
         cl_loss = self.clustering_loss(center_embedding, users, pos_items, g_user_centroids, g_item_centroids)
         bpr_loss = self.create_bpr_loss(u_embeddings, pos_embeddings, neg_embeddings)
 
-        return cl_loss + ( self.bpr_reg * bpr_loss )
+        if self.args.use_CL:
+            return cl_loss + (self.bpr_reg * bpr_loss)
+        else:
+            return self.bpr_reg * bpr_loss
+
+        #return cl_loss + ( self.bpr_reg * bpr_loss )
 
     def structure_loss(self, user, item):
         # user, item = selected by gdve
@@ -264,7 +269,13 @@ class NGCF(nn.Module):
         #pos
         pos_score_user = torch.mul(norm_user_emb1, norm_user_emb2).sum(dim=1)
         # before gdve 추가!!!! 어떻게? pos item 1홉 이웃 값 평균과 나!! 새로운 이웃에 대한 정의임
-        pos_score_user = pos_score_user + 0.1*torch.mul(norm_new_user, norm_user_emb2).sum(dim=1)
+        sl_new_user_score_ratio = self.args.sl_new_user_score_ratio
+        if not self.args.sl_use_user_gdve_plus:
+            sl_new_user_score_ratio = 0.0
+        pos_score_user = (1.0-sl_new_user_score_ratio)*pos_score_user + \
+                            sl_new_user_score_ratio*torch.mul(norm_new_user, norm_user_emb2).sum(dim=1)
+        
+        # pos_score_user = pos_score_user + 0.1*torch.mul(norm_new_user, norm_user_emb2).sum(dim=1)
         #neg
         ttl_score_user = torch.matmul(norm_user_emb1, norm_all_user_emb.transpose(0, 1))
         pos_score_user = torch.exp(pos_score_user / self.ssl_temp)
@@ -279,7 +290,12 @@ class NGCF(nn.Module):
         norm_all_item_emb = F.normalize(previous_item_embeddings_all)
         #pos
         pos_score_item = torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
-        pos_score_item = pos_score_item + 0.1*torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
+        sl_new_item_score_ratio = self.args.sl_new_item_score_ratio
+        if not self.args.sl_use_item_gdve_plus:
+            sl_new_item_score_ratio = 0.0
+        pos_score_item = (1.0-sl_new_item_score_ratio)*pos_score_item + \
+                            sl_new_item_score_ratio*torch.mul(norm_new_item, norm_item_emb2).sum(dim=1)
+        # pos_score_item = pos_score_item + 0.1*torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
         #neg
         ttl_score_item = torch.matmul(norm_item_emb1, norm_all_item_emb.transpose(0, 1))
         pos_score_item = torch.exp(pos_score_item / self.ssl_temp)
