@@ -30,7 +30,7 @@ for var_values in itertools.product(*var_set):
     base_config["config_token"] = token
     for key, val in zip(var_keys, var_values):
         base_config[key] = val
-        if key == "dataset":
-            base_config["data_path"] = f"./../../../data/{val}"
+        # if key == "dataset":
+        #     base_config["data_path"] = f"./../../../data/{val}"
     with open(f"{base_config['test_type']}_{base_config['dataset']}_{token}.yaml", "w") as fd:
         yaml.dump(base_config, fd)

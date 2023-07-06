@@ -226,7 +226,10 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    device = init_training_device(process_id, worker_number - 1, args.gpu_num_per_server)
+    if args.worker != -1:
+        device = torch.device(f"cuda:{args.worker}" if torch.cuda.is_available() else "cpu")
+    else:
+        device = init_training_device(process_id, worker_number - 1, args.gpu_num_per_server)
     args.device = device
     data_generator = Data_generator(args.data_path, args.batch_size)
 

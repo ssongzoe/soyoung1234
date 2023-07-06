@@ -30,6 +30,8 @@ log_dir_path: log
 log_file: base.log
 #metric config
 top_k: 100
+#cuda
+worker: -1
 #--------------------model config-----------------------
 #GDVE config
 dve_lr: 0.0007

@@ -9,7 +9,8 @@ client_num_per_round: 1
 cluster_k: 12
 comm_round: 31
 config_token: a4cf07
-data_path: ./../../../data/gowalla
+data_path: ./../../../data
+worker: -1
 dataset: gowalla
 decay: 1.0e-05
 dve_epochs: 1
