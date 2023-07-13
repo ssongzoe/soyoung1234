@@ -261,11 +261,11 @@ if __name__ == "__main__":
                              model, train_data_num, train_data_global, test_data_global,
                              data_local_num_dict, train_data_local_dict, test_data_local_dict, args, trainer)
 
-
-    if process_id == 0:
-        post_complete_message_to_sweep_process(args)
     # send telegram message after end
     import sys
     sys.path.append(os.path.expanduser("~"))
     from toolbox.SNS.sender import send_telegram
     send_telegram(f"End {args.config}")
+
+    if process_id == 0:
+        post_complete_message_to_sweep_process(args)
