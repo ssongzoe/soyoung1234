@@ -71,5 +71,11 @@ class FedAVGClientManager(ClientManager):
 
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
+        #custom - get communication round through environ
+        import os
+        os.environ["COMMROUND"] = str(self.round_idx)
+        with open("/home/netisen2/comm.txt", "a") as fd:
+            fd.write(f"{os.environ['COMMROUND']}\n")
+        #
         weights, local_sample_num = self.trainer.train(self.round_idx)
         self.send_model_to_server(0, weights, local_sample_num)

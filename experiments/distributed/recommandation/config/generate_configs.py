@@ -14,14 +14,15 @@ with open("base.yaml") as fd:
 
 #-------------------------------------correct below--------------------------------------------
 #config variation set
-#should match order of config key
-var_keys = ["test_type", "dataset", "use_SL"]
 #should set same key of config.yaml
-case_test_type = ["noSL"]
-case_dataset = ["ml-100k", "gowalla"] #, "gowalla", "yelp2018"
-case_use_SL = [True, False]
-
-var_set = [case_test_type, case_dataset, case_use_SL]
+var_keys = ["test_type", "dataset", "use_CL", "use_SL", "annealing_function"]
+case_test_type = ["annealing_15_BPR_10CL"]
+case_dataset = ["ml-100k"] #, "gowalla", "yelp2018"
+case_annealing_function = ["sigmoid", "exponential_increasing", "exponential_decreasing", "linear"]
+case_SL = [False]
+case_CL = [True]
+#should match order of config key
+var_set = [case_test_type, case_dataset, case_CL, case_SL, case_annealing_function]
 #----------------------------------------------------------------------------------------------
 assert len(var_keys) == len(var_set)
 

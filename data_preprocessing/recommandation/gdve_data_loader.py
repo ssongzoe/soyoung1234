@@ -316,6 +316,131 @@ class Data_generator(object):
 
         return train_data_num, val_data_num, test_data_num, train_data_global, val_data_global, test_data_global, \
                data_local_num_dict, train_data_local_dict, val_data_local_dict, test_data_local_dict
+    # def split_bigdata(self, train_items):
+    #     big_size = 5
+    #     big_dict, train_dict, inner_test_dict = {}, {}, {}
+    #     n_big, n_train, n_test = 0, 0, 0
+        
+    #     for u, i in train_items.items():
+    #         i = np.array(i)
+    #         curr = int(len(i) * big_size / 10)
+    #         if curr == 0:
+    #             big_dict[u] = np.array(list(i))
+    #             train_dict[u] = np.array(list(i))
+    #             n_big += 1
+    #             n_train += 1
+    #         else:
+    #             big_item = np.random.choice(i, curr, replace=False)
+    #             rest_item = np.setdiff1d(i, big_item)
+                
+    #             big_dict[u] = big_item
+    #             train_dict[u] = rest_item
+                
+    #             n_big += len(big_item)
+    #             n_train += len(rest_item)
+                
+    #     # Big이 Global, Train이 Client        
+    #     #self.big_data = big_dict
+    #     #self.n_big = n_big
+        
+    #     return n_train, train_dict, n_big, big_dict
+    
+    # def partition_data(self, client_number, uniform=True):
+
+    #     n_valid = 0
+    #     valid_items = {}
+
+    #     train_items = self.train_items
+    #     test_items = self.test_set
+
+    #     # Train items에서 자르면 안되고, 그걸 뺀거에서 잘라야함
+    #     new_train, train_items, new_big, big_items = self.split_bigdata(train_items)
+
+    #     new_idx = list(range(self.n_users))
+    #     rd.shuffle(new_idx)
+
+    #     client_data_dicts = [None] * client_number
+    #     train_dict = {}
+
+    #     if uniform:
+    #         clients_idxs = np.array_split(new_idx, client_number)
+    #     else:
+    #         for k, v in train_items.items():
+    #             train_dict[k] = len(v)
+    #         clients_idxs = np.array_split(new_idx, client_number)
+
+    #     for client in range(client_number):
+    #         client_train_datasets = {}
+    #         client_test_datasets = {}
+    #         client_valid_datasets = {}
+    #         for user in clients_idxs[client]:
+    #             client_train_datasets[user] = train_items[user]
+    #             try:
+    #                 client_test_datasets[user] = test_items[user]
+    #             except Exception:
+    #                 continue
+
+    #         partition_dict = {'train': client_train_datasets,
+    #                           'test': client_test_datasets,
+    #                           'val': client_valid_datasets}
+
+    #         client_data_dicts[client] = partition_dict
+
+    #     global_data_dict = {'train': big_items,
+    #                         'test': test_items,
+    #                         'val': valid_items}
+
+    #     return new_train, n_valid, global_data_dict, client_data_dicts
+
+    
+    # def load_partition_data(self, client_number, uniform=True):
+
+    #     data_local_num_dict = {}
+    #     train_data_local_dict = {}
+    #     val_data_local_dict = {}
+    #     test_data_local_dict = {}
+
+    #     new_train, n_valid, global_data_dict, client_data_dicts = self.partition_data(client_number, uniform)
+
+    #     # Valid에 대해서 처리해야함
+        
+    #     train_data_num = new_train
+    #     val_data_num = n_valid
+    #     test_data_num = self.n_test
+
+    #     train_data_global = global_data_dict['train']
+    #     val_data_global = global_data_dict['val']
+    #     test_data_global = global_data_dict['test']
+
+    #     for client in range(client_number):
+    #         train_dataset_client = client_data_dicts[client]['train']
+    #         val_dataset_client = client_data_dicts[client]['val']
+    #         test_dataset_client = client_data_dicts[client]['test']
+
+    #         list1 = list(train_dataset_client.values())
+    #         list2 = np.concatenate(list1).tolist()
+
+    #         data_local_num_dict[client] = len(list2)
+
+    #         train_data_local_dict[client] = train_dataset_client
+    #         val_data_local_dict[client] = val_dataset_client
+    #         test_data_local_dict[client] = test_dataset_client
+
+    #         logging.info("Client idx = {}, local sample number = {}".format(client, len(list2)))
+            
+    #     #print(sum(len(v) for k,v in train_data_global.items()))
+        
+    #     check = 0
+    #     for i in range(client_number):
+    #         check += sum([len(v) for k,v in train_data_local_dict[i].items()])
+    #         # print(train_data_local_dict[0])
+            
+    #     #print(check)
+        
+    #     #print(sum(len(v) for k,v in train_data_global.items()) + check)
+
+    #     return train_data_num, val_data_num, test_data_num, train_data_global, val_data_global, test_data_global, \
+    #            data_local_num_dict, train_data_local_dict, val_data_local_dict, test_data_local_dict
 
 
     def get_num_users_items(self):

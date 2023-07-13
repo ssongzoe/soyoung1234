@@ -1,4 +1,4 @@
-config_token: asdfasdf
+config_token: zxczxc
 test_type: AAA
 #shell script config
 dataset: ml-100k
@@ -26,6 +26,7 @@ Ks: "[20,40,60,80,100]"
 save_flag: 0
 test_flag: part
 #log config
+is_log_in_test_type_dir: true
 log_dir_path: log
 log_file: base.log
 #metric config
@@ -39,10 +40,21 @@ epsilon: 0.00000001
 baseline_delta: 0.001
 dve_epochs: 1
 patience: 10
+#relieve bad embedding init
+use_BPR_annealing: false
+use_CL_annealing: true #use CL & SL.
+use_SL_annealing: true #same above
+annealing_function: exponential_increasing #linear, sigmoid, exponential_increasing, exponential_decreasing
+BPR_temperature: 5
+CL_temperature: 5
+SL_temperature: 5
+anneal_by_max_round: false
+comm_round_environ_key: COMMROUND #this should not be changed
+first_annealing_round: 10 #start to increase the regularization coefficient after specified round.
 #loss contribution
 bpr_reg: 0.01 #bpr loss regulation
 ssl_reg: 0.000001 #structure loss regulation
-proto_reg: 0.0000008 #clustering loss regulation
+proto_reg: 0.000008 #clustering loss regulation
 #NGCF config
 n_layers: 3
 ssl_temp: 0.1

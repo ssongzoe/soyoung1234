@@ -516,7 +516,14 @@ class TLDRtrainer():
         return np.abs(y_label - y_hat).float()
 
     def dvrl_fit(self, users, pos_items, neg_items, sel_prob, inner_epochs, dve_lr, g_user_centroids, g_item_centroids):
+        """
+        users: lst
+        pos_items: lst
+        neg_items: lst
+        => index
 
+
+        """
         model = self.model
         model.to(self.device)
         model.train()
@@ -540,9 +547,11 @@ class TLDRtrainer():
         # before gdve
         for epoch in range(inner_epochs):
 
-            loss = loss_func(users, pos_items, neg_items, g_user_centroids, g_item_centroids)
+            #loss = loss_func(users, pos_items, neg_items, g_user_centroids, g_item_centroids)
+            loss = loss_func(user, pos_item, neg_item, g_user_centroids, g_item_centroids)
             if self.args.use_SL:
-                st_loss = model.structure_loss(user, pos_item)
+                #st_loss = model.structure_loss(user, pos_item)
+                st_loss = model.structure_loss(users, pos_items, user, pos_item) #변경 sl
                 losses = loss + st_loss
             else:
                 losses = loss

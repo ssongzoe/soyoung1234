@@ -1,4 +1,9 @@
 import copy
+import sys
+sys.path.append("..") # I don't like it
+from util import annealing
+import os
+
 import numpy as np
 import torch.optim as optim
 import faiss
@@ -57,6 +62,15 @@ class NGCF(nn.Module):
         # self.user_2cluster = None
         # self.item_centroids = None
         # self.item_2cluster = None
+
+        if self.args.annealing_function == "linear":
+            self.annealing_func = annealing.linear
+        elif self.args.annealing_function == "sigmoid":
+            self.annealing_func = annealing.sigmoid
+        elif self.args.annealing_function == "exponential_increasing":
+            self.annealing_func = annealing.exponential_increasing
+        elif self.args.annealing_function == "exponential_decreasing":
+            self.annealing_func = annealing.exponential_decreasing
 
         self.cluster_k = args.cluster_k
 
@@ -250,9 +264,11 @@ class NGCF(nn.Module):
             return self.bpr_reg * bpr_loss
 
         #return cl_loss + ( self.bpr_reg * bpr_loss )
+    def structure_loss(self, users, pos_items, user, item):
 
-    def structure_loss(self, user, item):
-        # user, item = selected by gdve
+        # users, pos_items = 전체
+        # user, item = 선택된
+
         user_all_embeddings, item_all_embeddings, embeddings_list = self.forward()
         previous_embedding = embeddings_list[0]
         one_hop_embedding = embeddings_list[1]
@@ -261,28 +277,36 @@ class NGCF(nn.Module):
         current_user_embeddings, current_item_embeddings = torch.split(current_embedding, [self.n_users, self.n_items])
         previous_user_embeddings_all, previous_item_embeddings_all = torch.split(previous_embedding,
                                                                                  [self.n_users, self.n_items])
-        # 추가한 부분
-        middle_user_embeddings, middle_item_embeddings = torch.split(one_hop_embedding, [self.n_users, self.n_items])
-        selected_user = middle_item_embeddings[item]
-        norm_new_user = F.normalize(selected_user)
-        selected_item = middle_user_embeddings[user]
-        norm_new_item = F.normalize(selected_item)
-
-        current_user_embeddings = current_user_embeddings[user]
-        previous_user_embeddings = previous_user_embeddings_all[user]
+        ##############################
+        # ###### 추가한 부분 user
+        selected_user_embeddings = current_user_embeddings[user] #current user embedding: 전체 embedding => ngcf를 통과한 final embedding 
+        selected_pre_user_embeddings = previous_user_embeddings_all[user]
+        norm_selected_users = F.normalize(selected_user_embeddings)  # 이웃
+        norm_selected_user = F.normalize(selected_pre_user_embeddings)  # 0층
+        # ### items
+        selected_item_embeddings = current_item_embeddings[item]
+        selected_pre_item_embeddings = previous_item_embeddings_all[item]
+        norm_selected_items = F.normalize(selected_item_embeddings)  # 이웃
+        norm_selected_item = F.normalize(selected_pre_item_embeddings)  # 0층
+        ##############################
+        """
+        문제점: len(users) != len(user) -> 오류 => line 304에서 오류남
+        """
+        current_user_embeddings = current_user_embeddings[users]
+        previous_user_embeddings = previous_user_embeddings_all[users]
         norm_user_emb1 = F.normalize(current_user_embeddings) #2층 output
         norm_user_emb2 = F.normalize(previous_user_embeddings) #0층
         norm_all_user_emb = F.normalize(previous_user_embeddings_all) #그냥 다네..
         #pos
         pos_score_user = torch.mul(norm_user_emb1, norm_user_emb2).sum(dim=1)
         # before gdve 추가!!!! 어떻게? pos item 1홉 이웃 값 평균과 나!! 새로운 이웃에 대한 정의임
-        sl_new_user_score_ratio = self.args.sl_new_user_score_ratio
-        if not self.args.sl_use_user_gdve_plus:
-            sl_new_user_score_ratio = 0.0
-        pos_score_user = (1.0-sl_new_user_score_ratio)*pos_score_user + \
-                            sl_new_user_score_ratio*torch.mul(norm_new_user, norm_user_emb2).sum(dim=1)
-        
-        # pos_score_user = pos_score_user + 0.1*torch.mul(norm_new_user, norm_user_emb2).sum(dim=1)
+        #users_t = torch.Tensor(users).to(self.device)
+        #user_t = torch.Tensor(user).to(self.device)
+        pos_score_plus = torch.mul(norm_selected_users, norm_selected_user).sum(dim=1)
+        #user_gdve_plus_idx = torch.where(users_t.unsqueeze(0) == user_t.unsqueeze(1))[1] #index of members of user in users
+        user_gdve_plus_idx = [users.index(u) for u in user]
+        pos_score_user[user_gdve_plus_idx] = 0.9*pos_score_user[user_gdve_plus_idx] + 0.1*pos_score_plus
+        #pos_score_user = pos_score_user + 0.1*pos_score_plus #torch.mul(norm_selected_users, norm_selected_user).sum(dim=1)
         #neg
         ttl_score_user = torch.matmul(norm_user_emb1, norm_all_user_emb.transpose(0, 1))
         pos_score_user = torch.exp(pos_score_user / self.ssl_temp)
@@ -290,19 +314,17 @@ class NGCF(nn.Module):
 
         ssl_loss_user = -torch.log(pos_score_user / ttl_score_user).sum()
 
-        current_item_embeddings = current_item_embeddings[item]
-        previous_item_embeddings = previous_item_embeddings_all[item]
+        current_item_embeddings = current_item_embeddings[pos_items]
+        previous_item_embeddings = previous_item_embeddings_all[pos_items]
         norm_item_emb1 = F.normalize(current_item_embeddings) #2층
         norm_item_emb2 = F.normalize(previous_item_embeddings) #0층
         norm_all_item_emb = F.normalize(previous_item_embeddings_all)
         #pos
         pos_score_item = torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
-        sl_new_item_score_ratio = self.args.sl_new_item_score_ratio
-        if not self.args.sl_use_item_gdve_plus:
-            sl_new_item_score_ratio = 0.0
-        pos_score_item = (1.0-sl_new_item_score_ratio)*pos_score_item + \
-                            sl_new_item_score_ratio*torch.mul(norm_new_item, norm_item_emb2).sum(dim=1)
-        # pos_score_item = pos_score_item + 0.1*torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
+        # 추가
+        item_gdve_plus_idx = [pos_items.index(i) for i in item]
+        pos_score_item[item_gdve_plus_idx] = pos_score_item[item_gdve_plus_idx] + 0.1*torch.mul(norm_selected_items, norm_selected_item).sum(dim=1)
+        #pos_score_item = pos_score_item + 0.1*torch.mul(norm_selected_items, norm_selected_item).sum(dim=1)
         #neg
         ttl_score_item = torch.matmul(norm_item_emb1, norm_all_item_emb.transpose(0, 1))
         pos_score_item = torch.exp(pos_score_item / self.ssl_temp)
@@ -310,9 +332,94 @@ class NGCF(nn.Module):
 
         ssl_loss_item = -torch.log(pos_score_item / ttl_score_item).sum()
 
-        ssl_loss = self.ssl_reg * (ssl_loss_user + self.alpha * ssl_loss_item)
+        annealing_coeff = 1.0
+        curr_round = int(os.environ[self.args.comm_round_environ_key])
+        max_round = 0
+        if self.args.anneal_by_max_round:
+            max_round = self.args.comm_round
+        if self.args.use_SL_annealing:
+            annealing_coeff = self.annealing_func(curr_round,
+                                                  self.args.SL_temperature,
+                                                  self.args.first_annealing_round,
+                                                  max_round)
+
+        ssl_loss = annealing_coeff * self.ssl_reg * (ssl_loss_user + self.alpha * ssl_loss_item)
+
+        #ssl_loss = self.ssl_reg * (ssl_loss_user + self.alpha * ssl_loss_item)
         return ssl_loss
 
+    # def structure_loss(self, user, item):
+    #     # user, item = selected by gdve
+    #     user_all_embeddings, item_all_embeddings, embeddings_list = self.forward()
+    #     previous_embedding = embeddings_list[0]
+    #     one_hop_embedding = embeddings_list[1]
+    #     current_embedding = embeddings_list[2]
+
+    #     current_user_embeddings, current_item_embeddings = torch.split(current_embedding, [self.n_users, self.n_items])
+    #     previous_user_embeddings_all, previous_item_embeddings_all = torch.split(previous_embedding,
+    #                                                                              [self.n_users, self.n_items])
+    #     # 추가한 부분
+    #     middle_user_embeddings, middle_item_embeddings = torch.split(one_hop_embedding, [self.n_users, self.n_items])
+    #     selected_user = middle_item_embeddings[item]
+    #     norm_new_user = F.normalize(selected_user)
+    #     selected_item = middle_user_embeddings[user]
+    #     norm_new_item = F.normalize(selected_item)
+
+    #     current_user_embeddings = current_user_embeddings[user]
+    #     previous_user_embeddings = previous_user_embeddings_all[user]
+    #     norm_user_emb1 = F.normalize(current_user_embeddings) #2층 output
+    #     norm_user_emb2 = F.normalize(previous_user_embeddings) #0층
+    #     norm_all_user_emb = F.normalize(previous_user_embeddings_all) #그냥 다네..
+    #     #pos
+    #     pos_score_user = torch.mul(norm_user_emb1, norm_user_emb2).sum(dim=1)
+    #     # before gdve 추가!!!! 어떻게? pos item 1홉 이웃 값 평균과 나!! 새로운 이웃에 대한 정의임
+    #     sl_new_user_score_ratio = self.args.sl_new_user_score_ratio
+    #     if not self.args.sl_use_user_gdve_plus:
+    #         sl_new_user_score_ratio = 0.0
+    #     pos_score_user = (1.0-sl_new_user_score_ratio)*pos_score_user + \
+    #                         sl_new_user_score_ratio*torch.mul(norm_new_user, norm_user_emb2).sum(dim=1)
+        
+    #     # pos_score_user = pos_score_user + 0.1*torch.mul(norm_new_user, norm_user_emb2).sum(dim=1)
+    #     #neg
+    #     ttl_score_user = torch.matmul(norm_user_emb1, norm_all_user_emb.transpose(0, 1))
+    #     pos_score_user = torch.exp(pos_score_user / self.ssl_temp)
+    #     ttl_score_user = torch.exp(ttl_score_user / self.ssl_temp).sum(dim=1)
+
+    #     ssl_loss_user = -torch.log(pos_score_user / ttl_score_user).sum()
+
+    #     current_item_embeddings = current_item_embeddings[item]
+    #     previous_item_embeddings = previous_item_embeddings_all[item]
+    #     norm_item_emb1 = F.normalize(current_item_embeddings) #2층
+    #     norm_item_emb2 = F.normalize(previous_item_embeddings) #0층
+    #     norm_all_item_emb = F.normalize(previous_item_embeddings_all)
+    #     #pos
+    #     pos_score_item = torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
+    #     sl_new_item_score_ratio = self.args.sl_new_item_score_ratio
+    #     if not self.args.sl_use_item_gdve_plus:
+    #         sl_new_item_score_ratio = 0.0
+    #     pos_score_item = (1.0-sl_new_item_score_ratio)*pos_score_item + \
+    #                         sl_new_item_score_ratio*torch.mul(norm_new_item, norm_item_emb2).sum(dim=1)
+    #     # pos_score_item = pos_score_item + 0.1*torch.mul(norm_item_emb1, norm_item_emb2).sum(dim=1)
+    #     #neg
+    #     ttl_score_item = torch.matmul(norm_item_emb1, norm_all_item_emb.transpose(0, 1))
+    #     pos_score_item = torch.exp(pos_score_item / self.ssl_temp)
+    #     ttl_score_item = torch.exp(ttl_score_item / self.ssl_temp).sum(dim=1)
+
+    #     ssl_loss_item = -torch.log(pos_score_item / ttl_score_item).sum()
+
+    #     annealing_coeff = 1.0
+    #     curr_round = int(os.environ[self.args.comm_round_environ_key])
+    #     max_round = 0
+    #     if self.args.anneal_by_max_round:
+    #         max_round = self.args.comm_round
+    #     if self.args.use_SL_annealing:
+    #         annealing_coeff = self.annealing_func(curr_round,
+    #                                               self.args.SL_temperature,
+    #                                               self.args.first_annealing_round,
+    #                                               max_round)
+
+    #     ssl_loss = annealing_coeff * self.ssl_reg * (ssl_loss_user + self.alpha * ssl_loss_item)
+    #     return ssl_loss
 
     def clustering_loss(self, node_embedding, user, item, g_user_centroids, g_item_centroids):
         user_embeddings_all, item_embeddings_all = torch.split(node_embedding, [self.n_users, self.n_items])
@@ -341,7 +448,18 @@ class NGCF(nn.Module):
         ttl_score_item = torch.exp(ttl_score_item / self.ssl_temp).sum(dim=1)
         proto_nce_loss_item = -torch.log(pos_score_item / ttl_score_item).sum()
 
-        proto_nce_loss = self.proto_reg * (proto_nce_loss_user + proto_nce_loss_item)
+        annealing_coeff = 1.0
+        curr_round = int(os.environ[self.args.comm_round_environ_key])
+        max_round = 0
+        if self.args.anneal_by_max_round:
+            max_round = self.args.comm_round
+        if self.args.use_CL_annealing:
+            annealing_coeff = self.annealing_func(curr_round,
+                                                  self.args.SL_temperature,
+                                                  self.args.first_annealing_round,
+                                                  max_round)
+
+        proto_nce_loss = annealing_coeff * self.proto_reg * (proto_nce_loss_user + proto_nce_loss_item)
         return proto_nce_loss
 
     def calculate_bpr_loss(self, users, pos_items, neg_items):
@@ -352,7 +470,18 @@ class NGCF(nn.Module):
         pos_embeddings = item_all_embeddings[pos_items]
         neg_embeddings = item_all_embeddings[neg_items]
 
-        bpr_loss = self.create_bpr_loss(u_embeddings, pos_embeddings, neg_embeddings)
+        annealing_coeff = 1.0
+        curr_round = int(os.environ[self.args.comm_round_environ_key])
+        max_round = 0
+        if self.args.anneal_by_max_round:
+            max_round = self.args.comm_round
+        if self.args.use_BPR_annealing:
+            annealing_coeff = self.annealing_func(curr_round,
+                                                  self.args.SL_temperature,
+                                                  self.args.first_annealing_round,
+                                                  max_round)        
+
+        bpr_loss = annealing_coeff * self.create_bpr_loss(u_embeddings, pos_embeddings, neg_embeddings)
 
         return bpr_loss
 

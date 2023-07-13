@@ -8,6 +8,7 @@ import setproctitle
 import torch.nn
 import random
 import yaml
+import datetime as dt
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(),"")))
@@ -202,12 +203,19 @@ if __name__ == "__main__":
     # customize the process name
     str_process_name = "fedgdve" + "+ triple loss" #str(process_id)
     setproctitle.setproctitle(str_process_name)
-
+    # setup os environment for record communication round
+    os.environ[args.comm_round_environ_key] = "-1"
     # customize the log format
+    day = dt.datetime.now().strftime("%m%d")
+    if args.is_log_in_test_type_dir:
+        filename = f"{args.log_dir_path}/{day}_{args.test_type}/{args.dataset}_{args.config_token}.log"
+        os.makedirs(f"{args.log_dir_path}/{day}_{args.test_type}", exist_ok=True)
+    else:
+        filename = f"{args.log_dir_path}/{day}_{args.test_type}_{args.dataset}_{args.config_token}.log"
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d - {%(module)s.py (%(lineno)d)} - %(funcName)s(): %(message)s',
                         datefmt='%Y-%m-%d,%H:%M:%S',
-                        filename=f"{args.log_dir_path}/{args.test_type}_{args.dataset}_{args.config_token}.log")
+                        filename=filename)
     logging.info(args)
 
     hostname = socket.gethostname()
