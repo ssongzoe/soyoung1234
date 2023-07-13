@@ -65,6 +65,13 @@ class ClientManager(Observer):
 
     def finish(self):
         logging.info("__finish server")
+        # send telegram message after end
+        import sys
+        import os
+        sys.path.append(os.path.expanduser("~"))
+        from toolbox.SNS.sender import send_telegram
+        send_telegram(f"End {self.args.config}")
+        #
         if self.backend == "MPI":
             MPI.COMM_WORLD.Abort()
         elif self.backend == "MQTT":

@@ -33,6 +33,8 @@ log_file: base.log
 top_k: 100
 #cuda
 worker: -1 #If -1, program finds the most free gpu and uses it. If you want to use particular gpu, specify your walker as int e.g. 0,1,2
+#telegram
+send_telegram_after_complete: false
 #--------------------model config-----------------------
 #GDVE config
 dve_lr: 0.0007
