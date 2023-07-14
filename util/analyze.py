@@ -1,5 +1,6 @@
 import re
 import os
+import pandas as pd
 
 class Extractor:
     def __init__(
@@ -26,5 +27,7 @@ class Extractor:
             if filename.endswith(extension):
                 result[filename] = self.extract_file(os.path.join(path, filename))
 
-        return result
+        result_df = pd.DataFrame(result).T
+
+        return result_df
     
