@@ -48,7 +48,7 @@ patience: 10
 use_BPR_annealing: false
 use_CL_annealing: true #use CL & SL.
 use_SL_annealing: true #same above
-annealing_function: exponential_increasing #linear, sigmoid, exponential_increasing, exponential_decreasing
+annealing_function: exponential_decreasing #linear, sigmoid, exponential_increasing, exponential_decreasing
 BPR_temperature: 5
 CL_temperature: 5
 SL_temperature: 5
