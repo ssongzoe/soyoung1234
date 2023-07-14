@@ -210,6 +210,9 @@ if __name__ == "__main__":
     if args.is_log_in_test_type_dir:
         filename = f"{args.log_dir_path}/{day}_{args.test_type}/{args.dataset}_{args.config_token}.log"
         os.makedirs(f"{args.log_dir_path}/{day}_{args.test_type}", exist_ok=True)
+        if not os.path.exists(f"{args.log_dir_path}/{day}_{args.test_type}/README.md"):
+            with open(f"{args.log_dir_path}/{day}_{args.test_type}/README.md", "w") as fd:
+                fd.write("# config\n")
     else:
         filename = f"{args.log_dir_path}/{day}_{args.test_type}_{args.dataset}_{args.config_token}.log"
     logging.basicConfig(level=logging.INFO,
